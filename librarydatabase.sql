@@ -1,72 +1,88 @@
-CREATE DATABASE LibraryDB;
-
-USE LibraryDB;
-CREATE TABLE Books (
-    Book_ID INT PRIMARY KEY AUTO_INCREMENT,
-    Title VARCHAR(255) NOT NULL,
-    ISBN VARCHAR(20) UNIQUE NOT NULL,
-    Publication_Year YEAR,
-    Genre VARCHAR(100),
-    Is_Available BOOLEAN DEFAULT TRUE
+-- Publisher Table
+CREATE TABLE Publisher (
+    PublisherId INT PRIMARY KEY,
+    YearOfPublication YEAR,
+    Name VARCHAR(255)
 );
-CREATE TABLE Authors (
-    Author_ID INT PRIMARY KEY AUTO_INCREMENT,
-    First_Name VARCHAR(100) NOT NULL,
-    Last_Name VARCHAR(100) NOT NULL,
-    Birth_Date DATE
-);
-CREATE TABLE Members (
-    Member_ID INT PRIMARY KEY AUTO_INCREMENT,
-    First_Name VARCHAR(100) NOT NULL,
-    Last_Name VARCHAR(100) NOT NULL,
-    Membership_Date DATE,
-    Email VARCHAR(255) UNIQUE NOT NULL
-);
-CREATE TABLE Loans (
-    Loan_ID INT PRIMARY KEY AUTO_INCREMENT,
-    Member_ID INT,
-    Book_ID INT,
-    Loan_Date DATE,
-    Due_Date DATE,
-    Return_Date DATE,
-    FOREIGN KEY (Member_ID) REFERENCES Members(Member_ID),
-    FOREIGN KEY (Book_ID) REFERENCES Books(Book_ID)
-);
-CREATE TABLE Book_Author (
-    Book_ID INT,
-    Author_ID INT,
-    PRIMARY KEY (Book_ID, Author_ID),
-    FOREIGN KEY (Book_ID) REFERENCES Books(Book_ID),
-    FOREIGN KEY (Author_ID) REFERENCES Authors(Author_ID)
-);
--- Insert Authors
-INSERT INTO Authors (First_Name, Last_Name, Birth_Date) VALUES 
-('George', 'Orwell', '1903-06-25'),
-('F. Scott', 'Fitzgerald', '1896-09-24');
 
--- Insert Books
-INSERT INTO Books (Title, ISBN, Publication_Year, Genre, Is_Available) VALUES 
-('1984', '9780451524935', 1949, 'Dystopian', TRUE),
-('The Great Gatsby', '9780743273565', 1925, 'Novel', TRUE);
+-- Book Table with Foreign Key to Publisher
+CREATE TABLE Book (
+    authno INT,
+    isbn VARCHAR(13) PRIMARY KEY,
+    title VARCHAR(255),
+    edition VARCHAR(50),
+    category VARCHAR(100),
+    price DECIMAL(10,2),
+    PublisherId INT,
+    FOREIGN KEY (PublisherId) REFERENCES Publisher(PublisherId)
+);
 
--- Insert Members
-INSERT INTO Members (First_Name, Last_Name, Membership_Date, Email) VALUES 
-('John', 'Doe', '2023-01-15', 'john.doe@example.com'),
-('Jane', 'Smith', '2023-02-20', 'jane.smith@example.com');
+-- Reader Table
+CREATE TABLE Reader (
+    UserId INT PRIMARY KEY,
+    Email VARCHAR(255),
+    Address VARCHAR(255),
+    FirstName VARCHAR(100),
+    LastName VARCHAR(100)
+);
 
--- Insert Loans
-INSERT INTO Loans (Member_ID, Book_ID, Loan_Date, Due_Date) VALUES 
-(1, 1, '2024-01-01', '2024-01-15'),
-(2, 2, '2024-01-02', '2024-01-16');
+-- PhoneNumbers Table for Multi-valued Attribute
+CREATE TABLE PhoneNumbers (
+    UserId INT,
+    PhoneNo VARCHAR(15),
+    FOREIGN KEY (UserId) REFERENCES Reader(UserId),
+    PRIMARY KEY (UserId, PhoneNo) -- Composite primary key for multi-valued attribute
+);
 
--- Associate Books with Authors
-INSERT INTO Book_Author (Book_ID, Author_ID) VALUES 
-(1, 1), -- 1984 by George Orwell
-(2, 2); -- The Great Gatsby by F. Scott Fitzgerald
-SELECT m.First_Name AS Member_First_Name, m.Last_Name AS Member_Last_Name,
-       b.Title AS Book_Title, l.Loan_Date, l.Due_Date, l.Return_Date
-FROM Loans l
-JOIN Members m ON l.Member_ID = m.Member_ID
-JOIN Books b ON l.Book_ID = b.Book_ID
-WHERE m.Member_ID = 1; -- Change this ID to get history for other members
-SELECT Title, Genre FROM Books WHERE Is_Available = TRUE;
+-- Authentication System Table
+CREATE TABLE AuthenticationSystem (
+    LoginId INT PRIMARY KEY,
+    Password VARCHAR(255)
+);
+
+-- Reports Table with Foreign Key to Reader and Book
+CREATE TABLE Reports (
+    Reg_no INT PRIMARY KEY,
+    UserId INT,
+    Book_no VARCHAR(13),
+    IssueDate DATE,
+    ReturnDate DATE,
+    FOREIGN KEY (UserId) REFERENCES Reader(UserId),
+    FOREIGN KEY (Book_no) REFERENCES Book(isbn)
+);
+
+-- Staff Table
+CREATE TABLE Staff (
+    Staff_id INT PRIMARY KEY,
+    Name VARCHAR(255)
+);
+
+-- ReserveReturn Table for Reader and Book Reservation (1:N relationship)
+CREATE TABLE ReserveReturn (
+    UserId INT,
+    Book_no VARCHAR(13),
+    ReserveDate DATE,
+    DueDate DATE,
+    ReturnDate DATE,
+    FOREIGN KEY (UserId) REFERENCES Reader(UserId),
+    FOREIGN KEY (Book_no) REFERENCES Book(isbn),
+    PRIMARY KEY (UserId, Book_no, ReserveDate) -- Composite primary key
+);
+
+-- Junction Table for Many-to-Many Relationship between Staff and Reader
+CREATE TABLE StaffReader (
+    Staff_id INT,
+    UserId INT,
+    PRIMARY KEY (Staff_id, UserId),
+    FOREIGN KEY (Staff_id) REFERENCES Staff(Staff_id),
+    FOREIGN KEY (UserId) REFERENCES Reader(UserId)
+);
+
+-- StaffReports Table for One-to-Many Relationship between Staff and Reports
+CREATE TABLE StaffReports (
+    Staff_id INT,
+    Reg_no INT,
+    PRIMARY KEY (Staff_id, Reg_no),
+    FOREIGN KEY (Staff_id) REFERENCES Staff(Staff_id),
+    FOREIGN KEY (Reg_no) REFERENCES Reports(Reg_no)
+);
